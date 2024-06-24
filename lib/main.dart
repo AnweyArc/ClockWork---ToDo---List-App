@@ -178,7 +178,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             icon: Icon(Icons.delete),
                             onPressed: () {
                               if (!todo.isLocked) {
-                                todoList.removeTodo(index);
+                                _showDeleteConfirmationDialog(context, todoList, index);
                               }
                             },
                           ),
@@ -392,6 +392,33 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 }
               },
               child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, TodoList todoList, int index) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Confirm Deletion'),
+          content: Text('Are you sure you want to delete this task?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                todoList.removeTodo(index); // Remove the task
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Delete'),
             ),
           ],
         );
