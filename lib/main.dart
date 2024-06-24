@@ -3,29 +3,41 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:async';
 import 'dart:io';
-import 'todo_list.dart'; // Import the newly created file
-import 'settings.dart'; // Import the settings screen
+import 'todo_list.dart';
+import 'settings.dart';
+import 'theme_provider.dart';
 
 void main() {
-  runApp(TodoApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => TodoList()),
+      ],
+      child: TodoApp(),
+    ),
+  );
 }
 
 class TodoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (context) => TodoList(),
-      child: MaterialApp(
-        title: 'To-Do List',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        initialRoute: '/',
-        routes: {
-          '/': (context) => TodoListScreen(),
-          '/settings': (context) => SettingsScreen(), // Add settings route
-        },
-      ),
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'To-Do List',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+          ),
+          darkTheme: ThemeData.dark(),
+          themeMode: themeProvider.currentTheme,
+          initialRoute: '/',
+          routes: {
+            '/': (context) => TodoListScreen(),
+            '/settings': (context) => SettingsScreen(),
+          },
+        );
+      },
     );
   }
 }
@@ -58,7 +70,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
             icon: Icon(Icons.image),
             onPressed: _pickBackgroundImage,
           ),
-          SizedBox(width: 16), // Spacer between icons
+          SizedBox(width: 16),
           IconButton(
             icon: Icon(Icons.add),
             onPressed: () {
@@ -68,7 +80,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
           IconButton(
             icon: Icon(Icons.settings),
             onPressed: () {
-              Navigator.pushNamed(context, '/settings'); // Navigate to settings screen
+              Navigator.pushNamed(context, '/settings');
             },
           ),
         ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
-
+import 'package:provider/provider.dart';
+import 'theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -8,13 +9,14 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _isNightMode = false;
   Color _taskListBackgroundColor = Colors.white;
   double _fontSize = 16.0;
   FontStyle _fontStyle = FontStyle.normal;
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: Text('Settings'),
@@ -25,13 +27,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSwitchListTile(
             'Night Mode',
             'Enable dark theme',
-            _isNightMode,
+            themeProvider.isNightMode,
             (value) {
-              setState(() {
-                _isNightMode = value;
-                // You can toggle dark mode theme here
-                // Example: Theme.of(context).brightness = _isNightMode ? Brightness.dark : Brightness.light;
-              });
+              themeProvider.toggleNightMode(value);
             },
           ),
           Divider(),
