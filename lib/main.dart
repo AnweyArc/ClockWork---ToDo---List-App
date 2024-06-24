@@ -117,6 +117,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
           Expanded(
             child: Consumer<TodoList>(
               builder: (context, todoList, child) {
+                // Sort todos by priority before displaying
+                todoList.sortTodosByPriority();
                 return ListView.builder(
                   itemCount: todoList.todos.length,
                   itemBuilder: (context, index) {
@@ -130,8 +132,22 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               : TextDecoration.none,
                         ),
                       ),
-                      subtitle: Text(
-                          'Description: ${todo.description}\nDue Time: ${_formatDateTime(todo.dueTime)}'),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Description: ${todo.description}'),
+                          Text(
+                            'Due Time: ${_formatDateTime(todo.dueTime)}',
+                          ),
+                          Text(
+                            'Priority: ${_getPriorityText(todo.priority)}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: _getPriorityColor(todo.priority),
+                            ),
+                          ),
+                        ],
+                      ),
                       leading: Checkbox(
                         value: todo.isDone,
                         onChanged: (value) {
@@ -187,6 +203,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     final TextEditingController _titleController = TextEditingController();
     final TextEditingController _descriptionController = TextEditingController();
     DateTime _selectedDueTime = DateTime.now();
+    TaskPriority _selectedPriority = TaskPriority.Normal; // Default priority
 
     showDialog(
       context: context,
@@ -208,6 +225,20 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   labelText: 'Task Description',
                 ),
               ),
+              DropdownButtonFormField<TaskPriority>(
+                value: _selectedPriority,
+                items: TaskPriority.values.map((priority) {
+                  return DropdownMenuItem<TaskPriority>(
+                    value: priority,
+                    child: Text(_getPriorityText(priority)),
+                  );
+                }).toList(),
+                onChanged: (priority) {
+                  setState(() {
+                    _selectedPriority = priority!;
+                  });
+                },
+              ),
               Row(
                 children: [
                   Expanded(
@@ -223,8 +254,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       );
                       if (pickedTime != null) {
                         final now = DateTime.now();
-                        _selectedDueTime = DateTime(now.year, now.month, now.day,
-                            pickedTime.hour, pickedTime.minute);
+                        _selectedDueTime = DateTime(
+                          now.year,
+                          now.month,
+                          now.day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
                       }
                     },
                     child: Text('Select Time'),
@@ -248,6 +284,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     _titleController.text,
                     _descriptionController.text,
                     _selectedDueTime,
+                    _selectedPriority,
                   );
                   Navigator.of(context).pop();
                 }
@@ -260,10 +297,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
-  void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo currentTodo) {
-    final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
-    final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
+  void _showEditDialog(
+      BuildContext context, TodoList todoList, int index, Todo currentTodo) {
+    final TextEditingController _editTitleController =
+        TextEditingController(text: currentTodo.title);
+    final TextEditingController _editDescriptionController =
+        TextEditingController(text: currentTodo.description);
     DateTime _editDueTime = currentTodo.dueTime;
+    TaskPriority _editPriority = currentTodo.priority;
 
     showDialog(
       context: context,
@@ -285,6 +326,20 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   labelText: 'Task Description',
                 ),
               ),
+              DropdownButtonFormField<TaskPriority>(
+                value: _editPriority,
+                items: TaskPriority.values.map((priority) {
+                  return DropdownMenuItem<TaskPriority>(
+                    value: priority,
+                    child: Text(_getPriorityText(priority)),
+                  );
+                }).toList(),
+                onChanged: (priority) {
+                  setState(() {
+                    _editPriority = priority!;
+                  });
+                },
+              ),
               Row(
                 children: [
                   Expanded(
@@ -300,8 +355,13 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       );
                       if (pickedTime != null) {
                         final now = DateTime.now();
-                        _editDueTime = DateTime(now.year, now.month, now.day,
-                            pickedTime.hour, pickedTime.minute);
+                        _editDueTime = DateTime(
+                          now.year,
+                          now.month,
+                          now.day,
+                          pickedTime.hour,
+                          pickedTime.minute,
+                        );
                       }
                     },
                     child: Text('Select Time'),
@@ -326,6 +386,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     _editTitleController.text,
                     _editDescriptionController.text,
                     _editDueTime,
+                    _editPriority,
                   );
                   Navigator.of(context).pop();
                 }
@@ -336,5 +397,31 @@ class _TodoListScreenState extends State<TodoListScreen> {
         );
       },
     );
+  }
+
+  String _getPriorityText(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.Low:
+        return 'Low';
+      case TaskPriority.Normal:
+        return 'Normal';
+      case TaskPriority.High:
+        return 'High';
+      default:
+        return '';
+    }
+  }
+
+  Color _getPriorityColor(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.Low:
+        return Colors.green;
+      case TaskPriority.Normal:
+        return Colors.blue;
+      case TaskPriority.High:
+        return Colors.red;
+      default:
+        return Colors.black;
+    }
   }
 }

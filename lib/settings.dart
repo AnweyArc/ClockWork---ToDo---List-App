@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:provider/provider.dart';
 import 'theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsScreen extends StatefulWidget {
   @override
@@ -9,14 +10,37 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  bool _isNightMode = false;
   Color _taskListBackgroundColor = Colors.white;
   double _fontSize = 16.0;
   FontStyle _fontStyle = FontStyle.normal;
 
   @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
 
+  void _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _isNightMode = prefs.getBool('isNightMode') ?? false;
+      _taskListBackgroundColor = Color(prefs.getInt('backgroundColor') ?? Colors.white.value);
+      _fontSize = prefs.getDouble('fontSize') ?? 16.0;
+      _fontStyle = FontStyle.values[prefs.getInt('fontStyle') ?? FontStyle.normal.index];
+    });
+  }
+
+  void _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setBool('isNightMode', _isNightMode);
+    prefs.setInt('backgroundColor', _taskListBackgroundColor.value);
+    prefs.setDouble('fontSize', _fontSize);
+    prefs.setInt('fontStyle', _fontStyle.index);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Settings'),
@@ -27,9 +51,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _buildSwitchListTile(
             'Night Mode',
             'Enable dark theme',
-            themeProvider.isNightMode,
+            _isNightMode,
             (value) {
-              themeProvider.toggleNightMode(value);
+              setState(() {
+                _isNightMode = value;
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                _saveSettings();
+              });
             },
           ),
           Divider(),
@@ -39,6 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (color) {
               setState(() {
                 _taskListBackgroundColor = color;
+                _saveSettings();
               });
             },
           ),
@@ -91,6 +120,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         );
         if (selectedColor != null && selectedColor != color) {
           onColorChanged(selectedColor);
+          _saveSettings();
         }
       },
     );
@@ -111,6 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (value) {
               setState(() {
                 _fontSize = value;
+                _saveSettings();
               });
             },
           ),
@@ -124,6 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               if (newValue != null) {
                 setState(() {
                   _fontStyle = newValue;
+                  _saveSettings();
                 });
               }
             },

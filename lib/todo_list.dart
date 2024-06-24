@@ -2,10 +2,17 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+enum TaskPriority {
+  Low,
+  Normal,
+  High,
+}
+
 class Todo {
   String title;
   String description;
   DateTime dueTime;
+  TaskPriority priority;
   bool isDone;
   bool isLocked;
 
@@ -13,6 +20,7 @@ class Todo {
     required this.title,
     required this.description,
     required this.dueTime,
+    this.priority = TaskPriority.Normal,
     this.isDone = false,
     this.isLocked = false,
   });
@@ -21,6 +29,7 @@ class Todo {
         'title': title,
         'description': description,
         'dueTime': dueTime.toIso8601String(),
+        'priority': priority.index,
         'isDone': isDone,
         'isLocked': isLocked,
       };
@@ -29,6 +38,7 @@ class Todo {
         title: json['title'],
         description: json['description'],
         dueTime: DateTime.parse(json['dueTime']),
+        priority: TaskPriority.values[json['priority']],
         isDone: json['isDone'],
         isLocked: json['isLocked'],
       );
@@ -59,11 +69,12 @@ class TodoList with ChangeNotifier {
     prefs.setString('todos', todosJson);
   }
 
-  void addTodo(String title, String description, DateTime dueTime) {
+  void addTodo(String title, String description, DateTime dueTime, [TaskPriority priority = TaskPriority.Normal]) {
     _todos.add(Todo(
       title: title,
       description: description,
       dueTime: dueTime,
+      priority: priority,
     ));
     _saveTodos();
     notifyListeners();
@@ -87,11 +98,25 @@ class TodoList with ChangeNotifier {
     notifyListeners();
   }
 
-  void editTodo(int index, String newTitle, String newDescription, DateTime newDueTime) {
+  void editTodo(int index, String newTitle, String newDescription, DateTime newDueTime, [TaskPriority newPriority = TaskPriority.Normal]) {
     _todos[index].title = newTitle;
     _todos[index].description = newDescription;
     _todos[index].dueTime = newDueTime;
+    _todos[index].priority = newPriority;
     _saveTodos();
+    notifyListeners();
+  }
+
+  void sortTodosByPriority() {
+    _todos.sort((a, b) {
+      if (a.priority.index < b.priority.index) {
+        return 1; // Higher priority first
+      } else if (a.priority.index > b.priority.index) {
+        return -1;
+      } else {
+        return 0;
+      }
+    });
     notifyListeners();
   }
 }
