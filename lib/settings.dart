@@ -59,21 +59,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _saveSettings();
               });
             },
-          ),
-          Divider(),
-          _buildColorPickerListTile(
-            'Task List Background Color',
-            _taskListBackgroundColor,
-            (color) {
-              setState(() {
-                _taskListBackgroundColor = color;
-                _saveSettings();
-              });
-            },
-          ),
-          Divider(),
-          _buildFontSizeListTile(),
-          Divider(),
+          )
         ],
       ),
     );
@@ -85,89 +71,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       subtitle: Text(subtitle),
       value: value,
       onChanged: onChanged,
-    );
-  }
-
-  Widget _buildColorPickerListTile(String title, Color color, ValueChanged<Color> onColorChanged) {
-    return ListTile(
-      title: Text(title),
-      trailing: CircleAvatar(
-        backgroundColor: color,
-        radius: 20,
-      ),
-      onTap: () async {
-        final selectedColor = await showDialog<Color>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(title),
-            content: SingleChildScrollView(
-              child: ColorPicker(
-                pickerColor: color,
-                onColorChanged: onColorChanged,
-                showLabel: true,
-                pickerAreaHeightPercent: 0.8,
-              ),
-            ),
-            actions: <Widget>[
-              TextButton(
-                child: Text('OK'),
-                onPressed: () {
-                  Navigator.of(context).pop(color);
-                },
-              ),
-            ],
-          ),
-        );
-        if (selectedColor != null && selectedColor != color) {
-          onColorChanged(selectedColor);
-          _saveSettings();
-        }
-      },
-    );
-  }
-
-  Widget _buildFontSizeListTile() {
-    return ExpansionTile(
-      title: Text('Appearance'),
-      children: [
-        ListTile(
-          title: Text('Font Size'),
-          subtitle: Text('Current Font Size: ${_fontSize.toStringAsFixed(1)}'),
-          trailing: Slider(
-            value: _fontSize,
-            min: 12,
-            max: 24,
-            divisions: 12,
-            onChanged: (value) {
-              setState(() {
-                _fontSize = value;
-                _saveSettings();
-              });
-            },
-          ),
-        ),
-        ListTile(
-          title: Text('Font Style'),
-          subtitle: Text('Current Font Style: ${_fontStyle.toString().split('.').last}'),
-          trailing: DropdownButton<FontStyle>(
-            value: _fontStyle,
-            onChanged: (FontStyle? newValue) {
-              if (newValue != null) {
-                setState(() {
-                  _fontStyle = newValue;
-                  _saveSettings();
-                });
-              }
-            },
-            items: FontStyle.values.map<DropdownMenuItem<FontStyle>>((FontStyle style) {
-              return DropdownMenuItem<FontStyle>(
-                value: style,
-                child: Text(style.toString().split('.').last),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
     );
   }
 }
