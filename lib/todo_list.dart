@@ -13,6 +13,7 @@ class Todo {
   String description;
   DateTime dueTime;
   TaskPriority priority;
+  String group;
   bool isDone;
   bool isLocked;
 
@@ -21,6 +22,7 @@ class Todo {
     required this.description,
     required this.dueTime,
     this.priority = TaskPriority.Normal,
+    this.group = '',
     this.isDone = false,
     this.isLocked = false,
   });
@@ -30,6 +32,7 @@ class Todo {
         'description': description,
         'dueTime': dueTime.toIso8601String(),
         'priority': priority.index,
+        'group': group,
         'isDone': isDone,
         'isLocked': isLocked,
       };
@@ -39,6 +42,7 @@ class Todo {
         description: json['description'],
         dueTime: DateTime.parse(json['dueTime']),
         priority: TaskPriority.values[json['priority']],
+        group: json['group'],
         isDone: json['isDone'],
         isLocked: json['isLocked'],
       );
@@ -69,12 +73,13 @@ class TodoList with ChangeNotifier {
     prefs.setString('todos', todosJson);
   }
 
-  void addTodo(String title, String description, DateTime dueTime, [TaskPriority priority = TaskPriority.Normal]) {
+  void addTodo(String title, String description, DateTime dueTime, TaskPriority priority, String group) {
     _todos.add(Todo(
       title: title,
       description: description,
       dueTime: dueTime,
       priority: priority,
+      group: group,
     ));
     _saveTodos();
     notifyListeners();
@@ -98,11 +103,12 @@ class TodoList with ChangeNotifier {
     notifyListeners();
   }
 
-  void editTodo(int index, String newTitle, String newDescription, DateTime newDueTime, [TaskPriority newPriority = TaskPriority.Normal]) {
+  void editTodo(int index, String newTitle, String newDescription, DateTime newDueTime, TaskPriority newPriority, String newGroup) {
     _todos[index].title = newTitle;
     _todos[index].description = newDescription;
     _todos[index].dueTime = newDueTime;
     _todos[index].priority = newPriority;
+    _todos[index].group = newGroup;
     _saveTodos();
     notifyListeners();
   }
@@ -118,5 +124,13 @@ class TodoList with ChangeNotifier {
       }
     });
     notifyListeners();
+  }
+
+  List<Todo> getTodosByGroup(String group) {
+    return _todos.where((todo) => todo.group == group).toList();
+  }
+
+  List<String> getGroups() {
+    return _todos.map((todo) => todo.group).toSet().toList();
   }
 }

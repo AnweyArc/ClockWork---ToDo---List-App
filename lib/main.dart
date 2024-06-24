@@ -47,9 +47,31 @@ class TodoListScreen extends StatefulWidget {
   _TodoListScreenState createState() => _TodoListScreenState();
 }
 
-class _TodoListScreenState extends State<TodoListScreen> {
+class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProviderStateMixin {
   File? _backgroundImage;
   final ImagePicker _picker = ImagePicker();
+  late TabController _tabController;
+  late StreamController<DateTime> _dateTimeStreamController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _dateTimeStreamController = StreamController<DateTime>.broadcast();
+    _startDateTimeStream();
+  }
+
+  void _startDateTimeStream() {
+    Timer.periodic(Duration(seconds: 1), (_) {
+      _dateTimeStreamController.add(DateTime.now());
+    });
+  }
+
+  @override
+  void dispose() {
+    _dateTimeStreamController.close();
+    super.dispose();
+  }
 
   Future<void> _pickBackgroundImage() async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
@@ -84,114 +106,127 @@ class _TodoListScreenState extends State<TodoListScreen> {
             },
           ),
         ],
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: [
+            Tab(text: 'All Tasks'),
+            Tab(text: 'Grouped Tasks'),
+          ],
+        ),
       ),
-      body: Column(
-        children: <Widget>[
-          Expanded(
-            child: Stack(
-              children: [
-                _backgroundImage != null
-                    ? Image.file(
-                        _backgroundImage!,
-                        width: double.infinity,
-                        height: double.infinity,
-                        fit: BoxFit.cover,
-                      )
-                    : Container(color: Colors.blueAccent),
-                Container(
-                  width: double.infinity,
-                  alignment: Alignment.center,
-                  child: StreamBuilder(
-                    stream: Stream.periodic(Duration(seconds: 1)),
-                    builder: (context, snapshot) {
-                      return Text(
-                        _formatDateTime(DateTime.now()),
-                        style: TextStyle(fontSize: 48, color: Colors.white),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Consumer<TodoList>(
-              builder: (context, todoList, child) {
-                // Sort todos by priority before displaying
-                todoList.sortTodosByPriority();
-                return ListView.builder(
-                  itemCount: todoList.todos.length,
-                  itemBuilder: (context, index) {
-                    final todo = todoList.todos[index];
-                    return ListTile(
-                      title: Text(
-                        todo.title,
-                        style: TextStyle(
-                          decoration: todo.isDone
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Description: ${todo.description}'),
-                          Text(
-                            'Due Time: ${_formatDateTime(todo.dueTime)}',
-                          ),
-                          Text(
-                            'Priority: ${_getPriorityText(todo.priority)}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _getPriorityColor(todo.priority),
-                            ),
-                          ),
-                        ],
-                      ),
-                      leading: Checkbox(
-                        value: todo.isDone,
-                        onChanged: (value) {
-                          if (!todo.isLocked) {
-                            todoList.toggleTodoStatus(index);
-                          }
-                        },
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(
-                                todo.isLocked ? Icons.lock : Icons.lock_open),
-                            onPressed: () {
-                              todoList.lockTodoStatus(index);
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () {
-                              if (!todo.isLocked) {
-                                _showEditDialog(context, todoList, index, todo);
-                              }
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () {
-                              if (!todo.isLocked) {
-                                _showDeleteConfirmationDialog(context, todoList, index);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildAllTasksView(),
+          GroupedTasksScreen(),
         ],
       ),
+    );
+  }
+
+  Widget _buildAllTasksView() {
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: Stack(
+            children: [
+              _backgroundImage != null
+                  ? Image.file(
+                      _backgroundImage!,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.cover,
+                    )
+                  : Container(color: Colors.blueAccent),
+              Container(
+                width: double.infinity,
+                alignment: Alignment.center,
+                child: StreamBuilder<DateTime>(
+                  stream: _dateTimeStreamController.stream,
+                  builder: (context, snapshot) {
+                    return Text(
+                      _formatDateTime(snapshot.data ?? DateTime.now()),
+                      style: TextStyle(fontSize: 48, color: Colors.white),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Consumer<TodoList>(
+            builder: (context, todoList, child) {
+              todoList.sortTodosByPriority();
+              return ListView.builder(
+                itemCount: todoList.todos.length,
+                itemBuilder: (context, index) {
+                  final todo = todoList.todos[index];
+                  return ListTile(
+                    title: Text(
+                      todo.title,
+                      style: TextStyle(
+                        decoration: todo.isDone
+                            ? TextDecoration.lineThrough
+                            : TextDecoration.none,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Description: ${todo.description}'),
+                        Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
+                        Text(
+                          'Priority: ${_getPriorityText(todo.priority)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _getPriorityColor(todo.priority),
+                          ),
+                        ),
+                      ],
+                    ),
+                    leading: Checkbox(
+                      value: todo.isDone,
+                      onChanged: (value) {
+                        if (!todo.isLocked) {
+                          todoList.toggleTodoStatus(index);
+                        }
+                      },
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(todo.isLocked ? Icons.lock : Icons.lock_open),
+                          onPressed: () {
+                            todoList.lockTodoStatus(index);
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () {
+                            if (!todo.isLocked) {
+                              _showEditDialog(context, todoList, index, todo);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            if (!todo.isLocked) {
+                              _showDeleteConfirmationDialog(context, todoList, index);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -202,8 +237,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
   void _showAddTaskDialog(BuildContext context) {
     final TextEditingController _titleController = TextEditingController();
     final TextEditingController _descriptionController = TextEditingController();
+    final TextEditingController _groupController = TextEditingController();
     DateTime _selectedDueTime = DateTime.now();
-    TaskPriority _selectedPriority = TaskPriority.Normal; // Default priority
+    TaskPriority _selectedPriority = TaskPriority.Normal;
 
     showDialog(
       context: context,
@@ -223,6 +259,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   labelText: 'Task Description',
+                ),
+              ),
+              TextField(
+                controller: _groupController,
+                decoration: InputDecoration(
+                  labelText: 'Task Group',
                 ),
               ),
               DropdownButtonFormField<TaskPriority>(
@@ -285,6 +327,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     _descriptionController.text,
                     _selectedDueTime,
                     _selectedPriority,
+                    _groupController.text,
                   );
                   Navigator.of(context).pop();
                 }
@@ -297,12 +340,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
   }
 
-  void _showEditDialog(
-      BuildContext context, TodoList todoList, int index, Todo currentTodo) {
-    final TextEditingController _editTitleController =
-        TextEditingController(text: currentTodo.title);
-    final TextEditingController _editDescriptionController =
-        TextEditingController(text: currentTodo.description);
+  void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo currentTodo) {
+    final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
+    final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
+    final TextEditingController _editGroupController = TextEditingController(text: currentTodo.group);
     DateTime _editDueTime = currentTodo.dueTime;
     TaskPriority _editPriority = currentTodo.priority;
 
@@ -324,6 +365,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 controller: _editDescriptionController,
                 decoration: InputDecoration(
                   labelText: 'Task Description',
+                ),
+              ),
+              TextField(
+                controller: _editGroupController,
+                decoration: InputDecoration(
+                  labelText: 'Task Group',
                 ),
               ),
               DropdownButtonFormField<TaskPriority>(
@@ -387,6 +434,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     _editDescriptionController.text,
                     _editDueTime,
                     _editPriority,
+                    _editGroupController.text,
                   );
                   Navigator.of(context).pop();
                 }
@@ -409,14 +457,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
-                todoList.removeTodo(index); // Remove the task
-                Navigator.of(context).pop(); // Close the dialog
+                todoList.removeTodo(index);
+                Navigator.of(context).pop();
               },
               child: Text('Delete'),
             ),
@@ -449,6 +497,54 @@ class _TodoListScreenState extends State<TodoListScreen> {
         return Colors.red;
       default:
         return Colors.black;
+    }
+  }
+}
+
+class GroupedTasksScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<TodoList>(
+      builder: (context, todoList, child) {
+        Map<String, List<Todo>> groupedTodos = {};
+        for (var todo in todoList.todos) {
+          if (!groupedTodos.containsKey(todo.group)) {
+            groupedTodos[todo.group] = [];
+          }
+          groupedTodos[todo.group]!.add(todo);
+        }
+
+        return ListView.builder(
+          itemCount: groupedTodos.keys.length,
+          itemBuilder: (context, index) {
+            String group = groupedTodos.keys.elementAt(index);
+            List<Todo> todos = groupedTodos[group]!;
+            return ExpansionTile(
+              title: Text(group),
+              children: todos.map((todo) {
+                return ListTile(
+                  title: Text(todo.title),
+                  subtitle: Text(todo.description),
+                  trailing: Text(_getPriorityText(todo.priority)),
+                );
+              }).toList(),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _getPriorityText(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.Low:
+        return 'Low';
+      case TaskPriority.Normal:
+        return 'Normal';
+      case TaskPriority.High:
+        return 'High';
+      default:
+        return '';
     }
   }
 }
