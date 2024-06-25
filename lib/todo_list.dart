@@ -16,6 +16,7 @@ class Todo {
   String group;
   bool isDone;
   bool isLocked;
+  String notes;  // New field for notes
 
   Todo({
     required this.title,
@@ -25,6 +26,7 @@ class Todo {
     this.group = '',
     this.isDone = false,
     this.isLocked = false,
+    this.notes = '',  // Initialize notes field
   });
 
   Map<String, dynamic> toJson() => {
@@ -35,6 +37,7 @@ class Todo {
         'group': group,
         'isDone': isDone,
         'isLocked': isLocked,
+        'notes': notes,  // Include notes in JSON
       };
 
   static Todo fromJson(Map<String, dynamic> json) => Todo(
@@ -45,6 +48,7 @@ class Todo {
         group: json['group'],
         isDone: json['isDone'],
         isLocked: json['isLocked'],
+        notes: json['notes'],  // Parse notes from JSON
       );
 }
 
@@ -63,6 +67,7 @@ class TodoList with ChangeNotifier {
     if (todosString != null) {
       final List<dynamic> todosJson = jsonDecode(todosString);
       _todos = todosJson.map((json) => Todo.fromJson(json)).toList();
+      sortTodosByPriority();
       notifyListeners();
     }
   }
@@ -81,6 +86,7 @@ class TodoList with ChangeNotifier {
       priority: priority,
       group: group,
     ));
+    sortTodosByPriority();
     _saveTodos();
     notifyListeners();
   }
@@ -93,6 +99,7 @@ class TodoList with ChangeNotifier {
 
   void removeTodo(int index) {
     _todos.removeAt(index);
+    sortTodosByPriority();
     _saveTodos();
     notifyListeners();
   }
@@ -109,6 +116,14 @@ class TodoList with ChangeNotifier {
     _todos[index].dueTime = newDueTime;
     _todos[index].priority = newPriority;
     _todos[index].group = newGroup;
+    sortTodosByPriority();
+    _saveTodos();
+    notifyListeners();
+  }
+
+  // New method to update notes
+  void updateTodoNotes(int index, String newNotes) {
+    _todos[index].notes = newNotes;
     _saveTodos();
     notifyListeners();
   }

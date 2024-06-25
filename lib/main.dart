@@ -202,6 +202,9 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                         ),
                       ],
                     ),
+                    onTap: () {
+                      _showTaskDetailsDialog(context, todo, index);
+                    },
                     leading: Checkbox(
                       value: todo.isDone,
                       onChanged: (value) {
@@ -246,6 +249,58 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
       ],
     );
   }
+
+  void _showTaskDetailsDialog(BuildContext context, Todo todo, int index) {
+  final TextEditingController _notesController = TextEditingController(text: todo.notes);
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: Text(todo.title),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Description: ${todo.description}'),
+            Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
+            Text(
+              'Priority: ${_getPriorityText(todo.priority)}',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: _getPriorityColor(todo.priority),
+              ),
+            ),
+            SizedBox(height: 10),
+            TextField(
+              controller: _notesController,
+              decoration: InputDecoration(
+                labelText: 'Notes',
+              ),
+              maxLines: 3,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: Text('Close'),
+          ),
+          TextButton(
+            onPressed: () {
+              Provider.of<TodoList>(context, listen: false).updateTodoNotes(index, _notesController.text);
+              Navigator.of(context).pop();
+            },
+            child: Text('Save Notes'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   String _formatDateTime(DateTime dateTime) {
     return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
