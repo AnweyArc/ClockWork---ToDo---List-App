@@ -175,7 +175,6 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
         Expanded(
           child: Consumer<TodoList>(
             builder: (context, todoList, child) {
-              todoList.sortTodosByPriority();
               return ListView.builder(
                 itemCount: todoList.todos.length,
                 itemBuilder: (context, index) {
@@ -262,97 +261,103 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Add Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Task Title',
-                ),
-              ),
-              TextField(
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Task Description',
-                ),
-              ),
-              TextField(
-                controller: _groupController,
-                decoration: InputDecoration(
-                  labelText: 'Task Group',
-                ),
-              ),
-              DropdownButtonFormField<TaskPriority>(
-                value: _selectedPriority,
-                items: TaskPriority.values.map((priority) {
-                  return DropdownMenuItem<TaskPriority>(
-                    value: priority,
-                    child: Text(_getPriorityText(priority)),
-                  );
-                }).toList(),
-                onChanged: (priority) {
-                  setState(() {
-                    _selectedPriority = priority!;
-                  });
-                },
-              ),
-              Row(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Add Task'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Due time: ${_formatDateTime(_selectedDueTime)}',
+                  TextField(
+                    controller: _titleController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Title',
                     ),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(_selectedDueTime),
+                  TextField(
+                    controller: _descriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Description',
+                    ),
+                  ),
+                  TextField(
+                    controller: _groupController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Group',
+                    ),
+                  ),
+                  DropdownButtonFormField<TaskPriority>(
+                    value: _selectedPriority,
+                    items: TaskPriority.values.map((priority) {
+                      return DropdownMenuItem<TaskPriority>(
+                        value: priority,
+                        child: Text(_getPriorityText(priority)),
                       );
-                      if (pickedTime != null) {
-                        final now = DateTime.now();
-                        _selectedDueTime = DateTime(
-                          now.year,
-                          now.month,
-                          now.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-                      }
+                    }).toList(),
+                    onChanged: (priority) {
+                      setState(() {
+                        _selectedPriority = priority!;
+                      });
                     },
-                    child: Text('Select Time'),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Due time: ${_formatDateTime(_selectedDueTime)}',
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_selectedDueTime),
+                          );
+                          if (pickedTime != null) {
+                            final now = DateTime.now();
+                            setState(() {
+                              _selectedDueTime = DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        },
+                        child: Text('Select Time'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (_titleController.text.isNotEmpty &&
-                    _descriptionController.text.isNotEmpty) {
-                  Provider.of<TodoList>(context, listen: false).addTodo(
-                    _titleController.text,
-                    _descriptionController.text,
-                    _selectedDueTime,
-                    _selectedPriority,
-                    _groupController.text,
-                  );
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text('Add'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_titleController.text.isNotEmpty &&
+                        _descriptionController.text.isNotEmpty) {
+                      Provider.of<TodoList>(context, listen: false).addTodo(
+                        _titleController.text,
+                        _descriptionController.text,
+                        _selectedDueTime,
+                        _selectedPriority,
+                        _groupController.text,
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Text('Add'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
@@ -368,98 +373,104 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     showDialog(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: Text('Edit Task'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _editTitleController,
-                decoration: InputDecoration(
-                  labelText: 'Task Title',
-                ),
-              ),
-              TextField(
-                controller: _editDescriptionController,
-                decoration: InputDecoration(
-                  labelText: 'Task Description',
-                ),
-              ),
-              TextField(
-                controller: _editGroupController,
-                decoration: InputDecoration(
-                  labelText: 'Task Group',
-                ),
-              ),
-              DropdownButtonFormField<TaskPriority>(
-                value: _editPriority,
-                items: TaskPriority.values.map((priority) {
-                  return DropdownMenuItem<TaskPriority>(
-                    value: priority,
-                    child: Text(_getPriorityText(priority)),
-                  );
-                }).toList(),
-                onChanged: (priority) {
-                  setState(() {
-                    _editPriority = priority!;
-                  });
-                },
-              ),
-              Row(
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Edit Task'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Expanded(
-                    child: Text(
-                      'Due time: ${_formatDateTime(_editDueTime)}',
+                  TextField(
+                    controller: _editTitleController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Title',
                     ),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      final pickedTime = await showTimePicker(
-                        context: context,
-                        initialTime: TimeOfDay.fromDateTime(_editDueTime),
+                  TextField(
+                    controller: _editDescriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Description',
+                    ),
+                  ),
+                  TextField(
+                    controller: _editGroupController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Group',
+                    ),
+                  ),
+                  DropdownButtonFormField<TaskPriority>(
+                    value: _editPriority,
+                    items: TaskPriority.values.map((priority) {
+                      return DropdownMenuItem<TaskPriority>(
+                        value: priority,
+                        child: Text(_getPriorityText(priority)),
                       );
-                      if (pickedTime != null) {
-                        final now = DateTime.now();
-                        _editDueTime = DateTime(
-                          now.year,
-                          now.month,
-                          now.day,
-                          pickedTime.hour,
-                          pickedTime.minute,
-                        );
-                      }
+                    }).toList(),
+                    onChanged: (priority) {
+                      setState(() {
+                        _editPriority = priority!;
+                      });
                     },
-                    child: Text('Select Time'),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Due time: ${_formatDateTime(_editDueTime)}',
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_editDueTime),
+                          );
+                          if (pickedTime != null) {
+                            final now = DateTime.now();
+                            setState(() {
+                              _editDueTime = DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        },
+                        child: Text('Select Time'),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (_editTitleController.text.isNotEmpty &&
-                    _editDescriptionController.text.isNotEmpty) {
-                  todoList.editTodo(
-                    index,
-                    _editTitleController.text,
-                    _editDescriptionController.text,
-                    _editDueTime,
-                    _editPriority,
-                    _editGroupController.text,
-                  );
-                  Navigator.of(context).pop();
-                }
-              },
-              child: Text('Save'),
-            ),
-          ],
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_editTitleController.text.isNotEmpty &&
+                        _editDescriptionController.text.isNotEmpty) {
+                      todoList.editTodo(
+                        index,
+                        _editTitleController.text,
+                        _editDescriptionController.text,
+                        _editDueTime,
+                        _editPriority,
+                        _editGroupController.text,
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Text('Save'),
+                ),
+              ],
+            );
+          },
         );
       },
     );
