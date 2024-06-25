@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'dart:io';
 import 'todo_list.dart';
@@ -59,6 +60,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     _tabController = TabController(length: 2, vsync: this);
     _dateTimeStreamController = StreamController<DateTime>.broadcast();
     _startDateTimeStream();
+    _loadBackgroundImage();
   }
 
   void _startDateTimeStream() {
@@ -78,6 +80,22 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     if (pickedFile != null) {
       setState(() {
         _backgroundImage = File(pickedFile.path);
+      });
+      _saveBackgroundImage(pickedFile.path);
+    }
+  }
+
+  Future<void> _saveBackgroundImage(String path) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setString('background_image_path', path);
+  }
+
+  Future<void> _loadBackgroundImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final path = prefs.getString('background_image_path');
+    if (path != null) {
+      setState(() {
+        _backgroundImage = File(path);
       });
     }
   }
