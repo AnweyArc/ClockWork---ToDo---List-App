@@ -11,9 +11,7 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isNightMode = false;
-  Color _taskListBackgroundColor = Colors.white;
-  double _fontSize = 16.0;
-  FontStyle _fontStyle = FontStyle.normal;
+  Color _timeTextColor = Colors.white;
 
   @override
   void initState() {
@@ -24,19 +22,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _isNightMode = prefs.getBool('isNightMode') ?? false;
-      _taskListBackgroundColor = Color(prefs.getInt('backgroundColor') ?? Colors.white.value);
-      _fontSize = prefs.getDouble('fontSize') ?? 16.0;
-      _fontStyle = FontStyle.values[prefs.getInt('fontStyle') ?? FontStyle.normal.index];
+      _isNightMode = prefs.getBool('isDarkMode') ?? false;
+      _timeTextColor = Color(prefs.getInt('timeTextColor') ?? Colors.white.value);
     });
   }
 
   void _saveSettings() async {
     final prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isNightMode', _isNightMode);
-    prefs.setInt('backgroundColor', _taskListBackgroundColor.value);
-    prefs.setDouble('fontSize', _fontSize);
-    prefs.setInt('fontStyle', _fontStyle.index);
+    prefs.setBool('isDarkMode', _isNightMode);
+    prefs.setInt('timeTextColor', _timeTextColor.value);
   }
 
   @override
@@ -55,13 +49,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (value) {
               setState(() {
                 _isNightMode = value;
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme(); // Ensure toggleTheme is accessible
                 _saveSettings();
               });
             },
-          )
+          ),
+          ListTile(
+            title: Text('Time Text Color'),
+            trailing: GestureDetector(
+              onTap: () {
+                _showColorPickerDialog(context);
+              },
+              child: Container(
+                width: 24,
+                height: 24,
+                color: _timeTextColor,
+              ),
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  void _showColorPickerDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Pick Time Text Color'),
+          content: SingleChildScrollView(
+            child: ColorPicker(
+              pickerColor: _timeTextColor,
+              onColorChanged: (color) {
+                setState(() {
+                  _timeTextColor = color;
+                  _saveSettings();
+                });
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 

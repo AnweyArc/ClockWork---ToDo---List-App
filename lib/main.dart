@@ -7,6 +7,7 @@ import 'dart:io';
 import 'todo_list.dart';
 import 'settings.dart';
 import 'theme_provider.dart';
+import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 void main() {
   runApp(
@@ -52,6 +53,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
   File? _backgroundImage;
   final ImagePicker _picker = ImagePicker();
   late TabController _tabController;
+  Color _timeTextColor = Colors.white;
   late StreamController<DateTime> _dateTimeStreamController;
 
   @override
@@ -61,12 +63,59 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     _dateTimeStreamController = StreamController<DateTime>.broadcast();
     _startDateTimeStream();
     _loadBackgroundImage();
+    _loadTimeTextColor(); // Load text color on init
+  }
+
+  Future<void> _loadTimeTextColor() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _timeTextColor = Color(prefs.getInt('time_text_color') ?? Colors.white.value);
+    });
+  }
+
+  Future<void> _saveTimeTextColor(Color color) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setInt('time_text_color', color.value);
   }
 
   void _startDateTimeStream() {
     Timer.periodic(Duration(seconds: 1), (_) {
       _dateTimeStreamController.add(DateTime.now());
     });
+  }
+
+  Future<void> _pickTimeTextColor() async {
+    Color? pickedColor = await showDialog(
+      context: context,
+      builder: (context) {
+        Color tempColor = _timeTextColor;
+        return AlertDialog(
+          title: Text('Pick a color'),
+          content: SingleChildScrollView(
+            child: BlockPicker(
+              pickerColor: _timeTextColor,
+              onColorChanged: (color) {
+                tempColor = color;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(tempColor);
+              },
+              child: Text('Select'),
+            ),
+          ],
+        );
+      },
+    );
+    if (pickedColor != null) {
+      setState(() {
+        _timeTextColor = pickedColor;
+      });
+      _saveTimeTextColor(pickedColor);
+    }
   }
 
   @override
@@ -162,9 +211,22 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                 child: StreamBuilder<DateTime>(
                   stream: _dateTimeStreamController.stream,
                   builder: (context, snapshot) {
-                    return Text(
-                      _formatDateTime(snapshot.data ?? DateTime.now()),
-                      style: TextStyle(fontSize: 48, color: Colors.white),
+                    final dateTime = snapshot.data ?? DateTime.now();
+                    final timeText = "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
+                    final dateText = "${dateTime.day.toString().padLeft(2, '0')} ${_monthName(dateTime.month)} ${dateTime.year}";
+
+                    return Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          timeText,
+                          style: TextStyle(fontSize: 48, color: _timeTextColor),
+                        ),
+                        Text(
+                          dateText,
+                          style: TextStyle(fontSize: 24, color: _timeTextColor),
+                        ),
+                      ],
                     );
                   },
                 ),
@@ -251,62 +313,69 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
   }
 
   void _showTaskDetailsDialog(BuildContext context, Todo todo, int index) {
-  final TextEditingController _notesController = TextEditingController(text: todo.notes);
+    final TextEditingController _notesController = TextEditingController(text: todo.notes);
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: Text(todo.title),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Description: ${todo.description}'),
-            Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
-            Text(
-              'Priority: ${_getPriorityText(todo.priority)}',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: _getPriorityColor(todo.priority),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(todo.title),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Description: ${todo.description}'),
+              Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
+              Text(
+                'Priority: ${_getPriorityText(todo.priority)}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: _getPriorityColor(todo.priority),
+                ),
               ),
+              SizedBox(height: 10),
+              TextField(
+                controller: _notesController,
+                decoration: InputDecoration(
+                  labelText: 'Notes',
+                ),
+                maxLines: 3,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Close'),
             ),
-            SizedBox(height: 10),
-            TextField(
-              controller: _notesController,
-              decoration: InputDecoration(
-                labelText: 'Notes',
-              ),
-              maxLines: 3,
+            TextButton(
+              onPressed: () {
+                Provider.of<TodoList>(context, listen: false).updateTodoNotes(index, _notesController.text);
+                Navigator.of(context).pop();
+              },
+              child: Text('Save Notes'),
             ),
           ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: Text('Close'),
-          ),
-          TextButton(
-            onPressed: () {
-              Provider.of<TodoList>(context, listen: false).updateTodoNotes(index, _notesController.text);
-              Navigator.of(context).pop();
-            },
-            child: Text('Save Notes'),
-          ),
-        ],
-      );
-    },
-  );
-}
-
-
-  String _formatDateTime(DateTime dateTime) {
-    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
+        );
+      },
+    );
   }
 
-    void _showAddTaskDialog(BuildContext context) {
+  String _formatDateTime(DateTime dateTime) {
+    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}\n${dateTime.day.toString().padLeft(2, '0')} ${_monthName(dateTime.month)} ${dateTime.year}";
+  }
+
+  String _monthName(int month) {
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return monthNames[month - 1];
+  }
+
+  void _showAddTaskDialog(BuildContext context) {
     final TextEditingController _titleController = TextEditingController();
     final TextEditingController _descriptionController = TextEditingController();
     final TextEditingController _groupController = TextEditingController();
@@ -418,121 +487,118 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     );
   }
 
-
   void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo currentTodo) {
-  final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
-  final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
-  final TextEditingController _editGroupController = TextEditingController(text: currentTodo.group);
-  DateTime _editDueTime = currentTodo.dueTime;
-  TaskPriority _editPriority = currentTodo.priority;
+    final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
+    final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
+    final TextEditingController _editGroupController = TextEditingController(text: currentTodo.group);
+    DateTime _editDueTime = currentTodo.dueTime;
+    TaskPriority _editPriority = currentTodo.priority;
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          return AlertDialog(
-            title: Text('Edit Task'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: _editTitleController,
-                  decoration: InputDecoration(
-                    labelText: 'Task Title',
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Edit Task'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: _editTitleController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Title',
+                    ),
                   ),
-                ),
-                TextField(
-                  controller: _editDescriptionController,
-                  decoration: InputDecoration(
-                    labelText: 'Task Description',
+                  TextField(
+                    controller: _editDescriptionController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Description',
+                    ),
                   ),
-                ),
-                TextField(
-                  controller: _editGroupController,
-                  decoration: InputDecoration(
-                    labelText: 'Task Group',
+                  TextField(
+                    controller: _editGroupController,
+                    decoration: InputDecoration(
+                      labelText: 'Task Group',
+                    ),
                   ),
-                ),
-                DropdownButtonFormField<TaskPriority>(
-                  value: _editPriority,
-                  items: TaskPriority.values.map((priority) {
-                    return DropdownMenuItem<TaskPriority>(
-                      value: priority,
-                      child: Text(_getPriorityText(priority)),
-                    );
-                  }).toList(),
-                  onChanged: (priority) {
-                    setState(() {
-                      _editPriority = priority!;
-                    });
-                  },
-                ),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Due time: ${_formatDateTime(_editDueTime)}',
+                  DropdownButtonFormField<TaskPriority>(
+                    value: _editPriority,
+                    items: TaskPriority.values.map((priority) {
+                      return DropdownMenuItem<TaskPriority>(
+                        value: priority,
+                        child: Text(_getPriorityText(priority)),
+                      );
+                    }).toList(),
+                    onChanged: (priority) {
+                      setState(() {
+                        _editPriority = priority!;
+                      });
+                    },
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Due time: ${_formatDateTime(_editDueTime)}',
+                        ),
                       ),
-                    ),
-                    TextButton(
-                      onPressed: () async {
-                        final pickedTime = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.fromDateTime(_editDueTime),
-                        );
-                        if (pickedTime != null) {
-                          final now = DateTime.now();
-                          setState(() {
-                            _editDueTime = DateTime(
-                              now.year,
-                              now.month,
-                              now.day,
-                              pickedTime.hour,
-                              pickedTime.minute,
-                            );
-                          });
-                        }
-                      },
-                      child: Text('Select Time'),
-                    ),
-                  ],
+                      TextButton(
+                        onPressed: () async {
+                          final pickedTime = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.fromDateTime(_editDueTime),
+                          );
+                          if (pickedTime != null) {
+                            final now = DateTime.now();
+                            setState(() {
+                              _editDueTime = DateTime(
+                                now.year,
+                                now.month,
+                                now.day,
+                                pickedTime.hour,
+                                pickedTime.minute,
+                              );
+                            });
+                          }
+                        },
+                        child: Text('Select Time'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    if (_editTitleController.text.isNotEmpty &&
+                        _editDescriptionController.text.isNotEmpty) {
+                      todoList.editTodo(
+                        index,
+                        _editTitleController.text,
+                        _editDescriptionController.text,
+                        _editDueTime,
+                        _editPriority,
+                        _editGroupController.text,
+                      );
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Text('Save'),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  if (_editTitleController.text.isNotEmpty &&
-                      _editDescriptionController.text.isNotEmpty) {
-                    todoList.editTodo(
-                      index,
-                      _editTitleController.text,
-                      _editDescriptionController.text,
-                      _editDueTime,
-                      _editPriority,
-                      _editGroupController.text,
-                    );
-                    Navigator.of(context).pop();
-                  }
-                },
-                child: Text('Save'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
-
-
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showDeleteConfirmationDialog(BuildContext context, TodoList todoList, int index) {
     showDialog(
@@ -577,17 +643,17 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
   }
 
   Color _getPriorityColor(TaskPriority priority) {
-  switch (priority) {
-    case TaskPriority.Low:
-      return Colors.blue;
-    case TaskPriority.Normal:
-      return Colors.yellow;
-    case TaskPriority.High:
-      return Colors.red;
-    case TaskPriority.Finished:  // Add this case
-      return Colors.green;
-    default:
-      return Colors.black;
+    switch (priority) {
+      case TaskPriority.Low:
+        return Colors.blue;
+      case TaskPriority.Normal:
+        return Colors.yellow;
+      case TaskPriority.High:
+        return Colors.red;
+      case TaskPriority.Finished: // Add this case
+        return Colors.green;
+      default:
+        return Colors.black;
     }
   }
 }
@@ -627,17 +693,17 @@ class GroupedTasksScreen extends StatelessWidget {
   }
 
   String _getPriorityText(TaskPriority priority) {
-  switch (priority) {
-    case TaskPriority.Low:
-      return 'Low';
-    case TaskPriority.Normal:
-      return 'Normal';
-    case TaskPriority.High:
-      return 'High';
-    case TaskPriority.Finished:  // Add this case
-      return 'Finished';
-    default:
-      return '';
+    switch (priority) {
+      case TaskPriority.Low:
+        return 'Low';
+      case TaskPriority.Normal:
+        return 'Normal';
+      case TaskPriority.High:
+        return 'High';
+      case TaskPriority.Finished: // Add this case
+        return 'Finished';
+      default:
+        return '';
     }
   }
 }
