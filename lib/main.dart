@@ -306,7 +306,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
   }
 
-  void _showAddTaskDialog(BuildContext context) {
+    void _showAddTaskDialog(BuildContext context) {
     final TextEditingController _titleController = TextEditingController();
     final TextEditingController _descriptionController = TextEditingController();
     final TextEditingController _groupController = TextEditingController();
@@ -418,118 +418,121 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
     );
   }
 
-  void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo currentTodo) {
-    final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
-    final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
-    final TextEditingController _editGroupController = TextEditingController(text: currentTodo.group);
-    DateTime _editDueTime = currentTodo.dueTime;
-    TaskPriority _editPriority = currentTodo.priority;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text('Edit Task'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: _editTitleController,
-                    decoration: InputDecoration(
-                      labelText: 'Task Title',
-                    ),
+  void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo currentTodo) {
+  final TextEditingController _editTitleController = TextEditingController(text: currentTodo.title);
+  final TextEditingController _editDescriptionController = TextEditingController(text: currentTodo.description);
+  final TextEditingController _editGroupController = TextEditingController(text: currentTodo.group);
+  DateTime _editDueTime = currentTodo.dueTime;
+  TaskPriority _editPriority = currentTodo.priority;
+
+  showDialog(
+    context: context,
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Edit Task'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: _editTitleController,
+                  decoration: InputDecoration(
+                    labelText: 'Task Title',
                   ),
-                  TextField(
-                    controller: _editDescriptionController,
-                    decoration: InputDecoration(
-                      labelText: 'Task Description',
-                    ),
-                  ),
-                  TextField(
-                    controller: _editGroupController,
-                    decoration: InputDecoration(
-                      labelText: 'Task Group',
-                    ),
-                  ),
-                  DropdownButtonFormField<TaskPriority>(
-                    value: _editPriority,
-                    items: TaskPriority.values.map((priority) {
-                      return DropdownMenuItem<TaskPriority>(
-                        value: priority,
-                        child: Text(_getPriorityText(priority)),
-                      );
-                    }).toList(),
-                    onChanged: (priority) {
-                      setState(() {
-                        _editPriority = priority!;
-                      });
-                    },
-                  ),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          'Due time: ${_formatDateTime(_editDueTime)}',
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () async {
-                          final pickedTime = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.fromDateTime(_editDueTime),
-                          );
-                          if (pickedTime != null) {
-                            final now = DateTime.now();
-                            setState(() {
-                              _editDueTime = DateTime(
-                                now.year,
-                                now.month,
-                                now.day,
-                                pickedTime.hour,
-                                pickedTime.minute,
-                              );
-                            });
-                          }
-                        },
-                        child: Text('Select Time'),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('Cancel'),
                 ),
-                TextButton(
-                  onPressed: () {
-                    if (_editTitleController.text.isNotEmpty &&
-                        _editDescriptionController.text.isNotEmpty) {
-                      todoList.editTodo(
-                        index,
-                        _editTitleController.text,
-                        _editDescriptionController.text,
-                        _editDueTime,
-                        _editPriority,
-                        _editGroupController.text,
-                      );
-                      Navigator.of(context).pop();
-                    }
+                TextField(
+                  controller: _editDescriptionController,
+                  decoration: InputDecoration(
+                    labelText: 'Task Description',
+                  ),
+                ),
+                TextField(
+                  controller: _editGroupController,
+                  decoration: InputDecoration(
+                    labelText: 'Task Group',
+                  ),
+                ),
+                DropdownButtonFormField<TaskPriority>(
+                  value: _editPriority,
+                  items: TaskPriority.values.map((priority) {
+                    return DropdownMenuItem<TaskPriority>(
+                      value: priority,
+                      child: Text(_getPriorityText(priority)),
+                    );
+                  }).toList(),
+                  onChanged: (priority) {
+                    setState(() {
+                      _editPriority = priority!;
+                    });
                   },
-                  child: Text('Save'),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Due time: ${_formatDateTime(_editDueTime)}',
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        final pickedTime = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.fromDateTime(_editDueTime),
+                        );
+                        if (pickedTime != null) {
+                          final now = DateTime.now();
+                          setState(() {
+                            _editDueTime = DateTime(
+                              now.year,
+                              now.month,
+                              now.day,
+                              pickedTime.hour,
+                              pickedTime.minute,
+                            );
+                          });
+                        }
+                      },
+                      child: Text('Select Time'),
+                    ),
+                  ],
                 ),
               ],
-            );
-          },
-        );
-      },
-    );
-  }
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                child: Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (_editTitleController.text.isNotEmpty &&
+                      _editDescriptionController.text.isNotEmpty) {
+                    todoList.editTodo(
+                      index,
+                      _editTitleController.text,
+                      _editDescriptionController.text,
+                      _editDueTime,
+                      _editPriority,
+                      _editGroupController.text,
+                    );
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: Text('Save'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+
 
   void _showDeleteConfirmationDialog(BuildContext context, TodoList todoList, int index) {
     showDialog(
@@ -566,21 +569,25 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
         return 'Normal';
       case TaskPriority.High:
         return 'High';
+      case TaskPriority.Finished:
+        return 'Finished';
       default:
         return '';
     }
   }
 
   Color _getPriorityColor(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.Low:
-        return Colors.green;
-      case TaskPriority.Normal:
-        return Colors.blue;
-      case TaskPriority.High:
-        return Colors.red;
-      default:
-        return Colors.black;
+  switch (priority) {
+    case TaskPriority.Low:
+      return Colors.blue;
+    case TaskPriority.Normal:
+      return Colors.yellow;
+    case TaskPriority.High:
+      return Colors.red;
+    case TaskPriority.Finished:  // Add this case
+      return Colors.green;
+    default:
+      return Colors.black;
     }
   }
 }
@@ -620,15 +627,17 @@ class GroupedTasksScreen extends StatelessWidget {
   }
 
   String _getPriorityText(TaskPriority priority) {
-    switch (priority) {
-      case TaskPriority.Low:
-        return 'Low';
-      case TaskPriority.Normal:
-        return 'Normal';
-      case TaskPriority.High:
-        return 'High';
-      default:
-        return '';
+  switch (priority) {
+    case TaskPriority.Low:
+      return 'Low';
+    case TaskPriority.Normal:
+      return 'Normal';
+    case TaskPriority.High:
+      return 'High';
+    case TaskPriority.Finished:  // Add this case
+      return 'Finished';
+    default:
+      return '';
     }
   }
 }

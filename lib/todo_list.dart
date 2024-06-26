@@ -6,6 +6,7 @@ enum TaskPriority {
   Low,
   Normal,
   High,
+  Finished,
 }
 
 class Todo {
@@ -30,26 +31,26 @@ class Todo {
   });
 
   Map<String, dynamic> toJson() => {
-        'title': title,
-        'description': description,
-        'dueTime': dueTime.toIso8601String(),
-        'priority': priority.index,
-        'group': group,
-        'isDone': isDone,
-        'isLocked': isLocked,
-        'notes': notes,  // Include notes in JSON
-      };
+  'title': title,
+  'description': description,
+  'dueTime': dueTime.toIso8601String(),
+  'priority': priority.index,
+  'group': group,
+  'isDone': isDone,
+  'isLocked': isLocked,
+  'notes': notes,
+};
 
-  static Todo fromJson(Map<String, dynamic> json) => Todo(
-        title: json['title'],
-        description: json['description'],
-        dueTime: DateTime.parse(json['dueTime']),
-        priority: TaskPriority.values[json['priority']],
-        group: json['group'],
-        isDone: json['isDone'],
-        isLocked: json['isLocked'],
-        notes: json['notes'],  // Parse notes from JSON
-      );
+static Todo fromJson(Map<String, dynamic> json) => Todo(
+  title: json['title'],
+  description: json['description'],
+  dueTime: DateTime.parse(json['dueTime']),
+  priority: TaskPriority.values[json['priority']],
+  group: json['group'],
+  isDone: json['isDone'],
+  isLocked: json['isLocked'],
+  notes: json['notes'],
+);
 }
 
 class TodoList with ChangeNotifier {
@@ -129,17 +130,21 @@ class TodoList with ChangeNotifier {
   }
 
   void sortTodosByPriority() {
-    _todos.sort((a, b) {
-      if (a.priority.index < b.priority.index) {
-        return 1; // Higher priority first
-      } else if (a.priority.index > b.priority.index) {
-        return -1;
-      } else {
-        return 0;
-      }
-    });
-    notifyListeners();
-  }
+  _todos.sort((a, b) {
+    if (a.priority == TaskPriority.Finished && b.priority != TaskPriority.Finished) {
+      return 1; // Finished tasks go to the end
+    } else if (a.priority != TaskPriority.Finished && b.priority == TaskPriority.Finished) {
+      return -1; // Finished tasks go to the end
+    } else if (a.priority.index < b.priority.index) {
+      return 1; // Higher priority first
+    } else if (a.priority.index > b.priority.index) {
+      return -1;
+    } else {
+      return 0;
+    }
+  });
+  notifyListeners();
+}
 
   List<Todo> getTodosByGroup(String group) {
     return _todos.where((todo) => todo.group == group).toList();
