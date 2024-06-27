@@ -62,9 +62,10 @@ class Todo {
 
 class TodoList with ChangeNotifier {
   List<Todo> _todos = [];
+  List<Todo> _filteredTodos = [];
   SortMode _currentSortMode = SortMode.PriorityHighToLow;
 
-  List<Todo> get todos => _todos;
+  List<Todo> get todos => _filteredTodos.isNotEmpty ? _filteredTodos : _todos;
   SortMode get currentSortMode => _currentSortMode;
 
   TodoList() {
@@ -230,6 +231,15 @@ class TodoList with ChangeNotifier {
   List<String> getGroups() {
     return _todos.map((todo) => todo.group).toSet().toList();
   }
+
+  void searchTasks(String query) {
+    if (query.isEmpty) {
+      _filteredTodos = [];
+    } else {
+      _filteredTodos = _todos.where((todo) => todo.title.contains(query)).toList();
+    }
+    notifyListeners();
+  }
 }
 
 class MyWidget extends StatelessWidget {
@@ -237,43 +247,29 @@ class MyWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Todo List'),
-        actions: [
-          Consumer<TodoList>(
-            builder: (context, todoList, child) {
-              return PopupMenuButton<SortMode>(
-                icon: Icon(Icons.sort),
-                onSelected: (SortMode result) {
-                  Provider.of<TodoList>(context, listen: false).sortCycle();
-                },
-                itemBuilder: (BuildContext context) => <PopupMenuEntry<SortMode>>[
-                  PopupMenuItem<SortMode>(
-                    value: SortMode.PriorityHighToLow,
-                    child: Text('Sort: Priority High to Low'),
-                  ),
-                  PopupMenuItem<SortMode>(
-                    value: SortMode.PriorityLowToHigh,
-                    child: Text('Sort: Priority Low to High'),
-                  ),
-                  PopupMenuItem<SortMode>(
-                    value: SortMode.DateCreated,
-                    child: Text('Sort: Date Created'),
-                  ),
-                ],
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Icon(Icons.sort),
-                      SizedBox(width: 4),
-                      Text(_getSortModeText(todoList.currentSortMode)),
-                    ],
-                  ),
+        titleSpacing: 0.0,
+        title: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search...',
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.only(top: 15.0, left: 15.0),
                 ),
-              );
-            },
-          ),
-        ],
+                onChanged: (value) {
+                  Provider.of<TodoList>(context, listen: false).searchTasks(value);
+                },
+              ),
+            ),
+            IconButton(
+              icon: Icon(Icons.sort),
+              onPressed: () {
+                Provider.of<TodoList>(context, listen: false).sortCycle();
+              },
+            ),
+          ],
+        ),
       ),
       body: _buildAllTasksView(),
     );
@@ -423,15 +419,4 @@ class MyWidget extends StatelessWidget {
   void _showDeleteConfirmationDialog(BuildContext context, TodoList todoList, int index) {
     // Implement your delete confirmation dialog here
   }
-}
-
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => TodoList(),
-      child: MaterialApp(
-        home: MyWidget(),
-      ),
-    ),
-  );
 }

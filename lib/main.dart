@@ -247,28 +247,30 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
           builder: (context, todoList, child) {
             return Scaffold(
               appBar: AppBar(
-                actions: [
-                  SizedBox(
-                    width: 200.0,
-                    child: TextField(
-                      decoration: InputDecoration(
-                        hintText: 'Search...',
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.only(top: 15.0),
+                  titleSpacing: 0.0,
+                  title: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search...',
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.only(top: 15.0, left: 15.0),
+                          ),
+                          onChanged: (value) {
+                            Provider.of<TodoList>(context, listen: false).searchTasks(value);
+                          },
+                        ),
                       ),
-                      onChanged: (value) {
-                        // Implement your search functionality here
-                      },
-                    ),
+                      IconButton(
+                        icon: Icon(Icons.sort),
+                        onPressed: () {
+                          Provider.of<TodoList>(context, listen: false).sortCycle();
+                        },
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(Icons.sort),
-                    onPressed: () {
-                      Provider.of<TodoList>(context, listen: false).sortCycle();
-                    },
-                  ),
-                ],
-              ),
+                ),
               body: ListView.builder(
                 itemCount: todoList.todos.length,
                 itemBuilder: (context, index) {
