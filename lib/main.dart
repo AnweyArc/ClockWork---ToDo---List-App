@@ -159,6 +159,12 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
             icon: Icon(Icons.image),
             onPressed: _pickBackgroundImage,
           ),
+            IconButton(
+            icon: Icon(Icons.sort),
+            onPressed: () {
+              Provider.of<TodoList>(context, listen: false).sortCycle();
+            },
+          ),
           SizedBox(width: 16),
           IconButton(
             icon: Icon(Icons.add),

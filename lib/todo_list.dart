@@ -1,5 +1,6 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum TaskPriority {
@@ -7,6 +8,12 @@ enum TaskPriority {
   Normal,
   High,
   Finished,
+}
+
+enum SortMode {
+  PriorityHighToLow,
+  PriorityLowToHigh,
+  DateCreated,
 }
 
 class Todo {
@@ -17,7 +24,7 @@ class Todo {
   String group;
   bool isDone;
   bool isLocked;
-  String notes;  // New field for notes
+  String notes;
 
   Todo({
     required this.title,
@@ -27,36 +34,38 @@ class Todo {
     this.group = '',
     this.isDone = false,
     this.isLocked = false,
-    this.notes = '',  // Initialize notes field
+    this.notes = '',
   });
 
   Map<String, dynamic> toJson() => {
-  'title': title,
-  'description': description,
-  'dueTime': dueTime.toIso8601String(),
-  'priority': priority.index,
-  'group': group,
-  'isDone': isDone,
-  'isLocked': isLocked,
-  'notes': notes,
-};
+    'title': title,
+    'description': description,
+    'dueTime': dueTime.toIso8601String(),
+    'priority': priority.index,
+    'group': group,
+    'isDone': isDone,
+    'isLocked': isLocked,
+    'notes': notes,
+  };
 
-static Todo fromJson(Map<String, dynamic> json) => Todo(
-  title: json['title'],
-  description: json['description'],
-  dueTime: DateTime.parse(json['dueTime']),
-  priority: TaskPriority.values[json['priority']],
-  group: json['group'],
-  isDone: json['isDone'],
-  isLocked: json['isLocked'],
-  notes: json['notes'],
-);
+  static Todo fromJson(Map<String, dynamic> json) => Todo(
+    title: json['title'],
+    description: json['description'],
+    dueTime: DateTime.parse(json['dueTime']),
+    priority: TaskPriority.values[json['priority']],
+    group: json['group'],
+    isDone: json['isDone'],
+    isLocked: json['isLocked'],
+    notes: json['notes'],
+  );
 }
 
 class TodoList with ChangeNotifier {
   List<Todo> _todos = [];
+  SortMode _currentSortMode = SortMode.PriorityHighToLow;
 
   List<Todo> get todos => _todos;
+  SortMode get currentSortMode => _currentSortMode;
 
   TodoList() {
     _loadTodos();
@@ -68,7 +77,7 @@ class TodoList with ChangeNotifier {
     if (todosString != null) {
       final List<dynamic> todosJson = jsonDecode(todosString);
       _todos = todosJson.map((json) => Todo.fromJson(json)).toList();
-      sortTodosByPriority();
+      sortTodos();
       notifyListeners();
     }
   }
@@ -87,7 +96,7 @@ class TodoList with ChangeNotifier {
       priority: priority,
       group: group,
     ));
-    sortTodosByPriority();
+    sortTodos();
     _saveTodos();
     notifyListeners();
   }
@@ -100,7 +109,7 @@ class TodoList with ChangeNotifier {
 
   void removeTodo(int index) {
     _todos.removeAt(index);
-    sortTodosByPriority();
+    sortTodos();
     _saveTodos();
     notifyListeners();
   }
@@ -117,34 +126,85 @@ class TodoList with ChangeNotifier {
     _todos[index].dueTime = newDueTime;
     _todos[index].priority = newPriority;
     _todos[index].group = newGroup;
-    sortTodosByPriority();
+    sortTodos();
     _saveTodos();
     notifyListeners();
   }
 
-  // New method to update notes
   void updateTodoNotes(int index, String newNotes) {
     _todos[index].notes = newNotes;
     _saveTodos();
     notifyListeners();
   }
 
-  void sortTodosByPriority() {
-  _todos.sort((a, b) {
-    if (a.priority == TaskPriority.Finished && b.priority != TaskPriority.Finished) {
-      return 1; // Finished tasks go to the end
-    } else if (a.priority != TaskPriority.Finished && b.priority == TaskPriority.Finished) {
-      return -1; // Finished tasks go to the end
-    } else if (a.priority.index < b.priority.index) {
-      return 1; // Higher priority first
-    } else if (a.priority.index > b.priority.index) {
-      return -1;
-    } else {
-      return 0;
+  void sortTodosByPriorityHighToLow() {
+    _todos.sort((a, b) {
+      if (a.priority == TaskPriority.Finished && b.priority != TaskPriority.Finished) {
+        return 1; // Finished tasks go to the end
+      } else if (a.priority != TaskPriority.Finished && b.priority == TaskPriority.Finished) {
+        return -1; // Finished tasks go to the end
+      } else if (a.priority.index > b.priority.index) {
+        return -1; // Higher priority first
+      } else if (a.priority.index < b.priority.index) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+  }
+
+  void sortTodosByPriorityLowToHigh() {
+    _todos.sort((a, b) {
+      if (a.priority == TaskPriority.Finished && b.priority != TaskPriority.Finished) {
+        return 1; // Finished tasks go to the end
+      } else if (a.priority != TaskPriority.Finished && b.priority == TaskPriority.Finished) {
+        return -1; // Finished tasks go to the end
+      } else if (a.priority.index < b.priority.index) {
+        return -1; // Lower priority first
+      } else if (a.priority.index > b.priority.index) {
+        return 1;
+      } else {
+        return 0;
+      }
+    });
+  }
+
+  void sortTodosByDateCreated() {
+    _todos.sort((a, b) => a.dueTime.compareTo(b.dueTime));
+  }
+
+  void sortCycle() {
+    switch (_currentSortMode) {
+      case SortMode.PriorityHighToLow:
+        sortTodosByPriorityHighToLow();
+        _currentSortMode = SortMode.PriorityLowToHigh;
+        break;
+      case SortMode.PriorityLowToHigh:
+        sortTodosByPriorityLowToHigh();
+        _currentSortMode = SortMode.DateCreated;
+        break;
+      case SortMode.DateCreated:
+        sortTodosByDateCreated();
+        _currentSortMode = SortMode.PriorityHighToLow;
+        break;
     }
-  });
-  notifyListeners();
-}
+    notifyListeners();
+  }
+
+  void sortTodos() {
+    switch (_currentSortMode) {
+      case SortMode.PriorityHighToLow:
+        sortTodosByPriorityHighToLow();
+        break;
+      case SortMode.PriorityLowToHigh:
+        sortTodosByPriorityLowToHigh();
+        break;
+      case SortMode.DateCreated:
+        sortTodosByDateCreated();
+        break;
+    }
+    notifyListeners();
+  }
 
   List<Todo> getTodosByGroup(String group) {
     return _todos.where((todo) => todo.group == group).toList();
@@ -153,4 +213,208 @@ class TodoList with ChangeNotifier {
   List<String> getGroups() {
     return _todos.map((todo) => todo.group).toSet().toList();
   }
+}
+
+class MyWidget extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Todo List'),
+        actions: [
+          Consumer<TodoList>(
+            builder: (context, todoList, child) {
+              return PopupMenuButton<SortMode>(
+                icon: Icon(Icons.sort),
+                onSelected: (SortMode result) {
+                  Provider.of<TodoList>(context, listen: false).sortCycle();
+                },
+                itemBuilder: (BuildContext context) => <PopupMenuEntry<SortMode>>[
+                  PopupMenuItem<SortMode>(
+                    value: SortMode.PriorityHighToLow,
+                    child: Text('Sort: Priority High to Low'),
+                  ),
+                  PopupMenuItem<SortMode>(
+                    value: SortMode.PriorityLowToHigh,
+                    child: Text('Sort: Priority Low to High'),
+                  ),
+                  PopupMenuItem<SortMode>(
+                    value: SortMode.DateCreated,
+                    child: Text('Sort: Date Created'),
+                  ),
+                ],
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Icon(Icons.sort),
+                      SizedBox(width: 4),
+                      Text(_getSortModeText(todoList.currentSortMode)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: _buildAllTasksView(),
+    );
+  }
+
+  String _getSortModeText(SortMode sortMode) {
+    switch (sortMode) {
+      case SortMode.PriorityHighToLow:
+        return 'Priority High to Low';
+      case SortMode.PriorityLowToHigh:
+        return 'Priority Low to High';
+      case SortMode.DateCreated:
+        return 'Date Created';
+      default:
+        return 'None';
+    }
+  }
+
+  Widget _buildAllTasksView() {
+    return Column(
+      children: <Widget>[
+        Expanded(
+          child: Stack(
+            children: [
+              // Your existing code for background and time/date display
+            ],
+          ),
+        ),
+        Expanded(
+          child: Consumer<TodoList>(
+            builder: (context, todoList, child) {
+              return ListView.builder(
+                itemCount: todoList.todos.length,
+                itemBuilder: (context, index) {
+                  final todo = todoList.todos[index];
+                  return ListTile(
+                    title: Text(
+                      todo.title,
+                      style: TextStyle(
+                        decoration: todo.isDone ? TextDecoration.lineThrough : TextDecoration.none,
+                      ),
+                    ),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Description: ${todo.description}'),
+                        Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
+                        Text(
+                          'Priority: ${_getPriorityText(todo.priority)}',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: _getPriorityColor(todo.priority),
+                          ),
+                        ),
+                      ],
+                    ),
+                    onTap: () {
+                      _showTaskDetailsDialog(context, todo, index);
+                    },
+                    leading: Checkbox(
+                      value: todo.isDone,
+                      onChanged: (value) {
+                        if (!todo.isLocked) {
+                          todoList.toggleTodoStatus(index);
+                        }
+                      },
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: Icon(todo.isLocked ? Icons.lock : Icons.lock_open),
+                          onPressed: () {
+                            todoList.lockTodoStatus(index);
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.edit),
+                          onPressed: () {
+                            if (!todo.isLocked) {
+                              _showEditDialog(context, todoList, index, todo);
+                            }
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () {
+                            if (!todo.isLocked) {
+                              _showDeleteConfirmationDialog(context, todoList, index);
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDateTime(DateTime dateTime) {
+    return "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
+  }
+
+  String _getPriorityText(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.Low:
+        return 'Low';
+      case TaskPriority.Normal:
+        return 'Normal';
+      case TaskPriority.High:
+        return 'High';
+      case TaskPriority.Finished:
+        return 'Finished';
+      default:
+        return '';
+    }
+  }
+
+  Color _getPriorityColor(TaskPriority priority) {
+    switch (priority) {
+      case TaskPriority.Low:
+        return Colors.green;
+      case TaskPriority.Normal:
+        return Colors.blue;
+      case TaskPriority.High:
+        return Colors.orange;
+      case TaskPriority.Finished:
+        return Colors.grey;
+      default:
+        return Colors.black;
+    }
+  }
+
+  void _showTaskDetailsDialog(BuildContext context, Todo todo, int index) {
+    // Implement your dialog to show task details here
+  }
+
+  void _showEditDialog(BuildContext context, TodoList todoList, int index, Todo todo) {
+    // Implement your dialog to edit a task here
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context, TodoList todoList, int index) {
+    // Implement your delete confirmation dialog here
+  }
+}
+
+void main() {
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => TodoList(),
+      child: MaterialApp(
+        home: MyWidget(),
+      ),
+    ),
+  );
 }
