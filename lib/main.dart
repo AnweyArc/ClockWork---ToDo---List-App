@@ -248,6 +248,19 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
             return Scaffold(
               appBar: AppBar(
                 actions: [
+                  SizedBox(
+                    width: 200.0,
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Search...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.only(top: 15.0),
+                      ),
+                      onChanged: (value) {
+                        // Implement your search functionality here
+                      },
+                    ),
+                  ),
                   IconButton(
                     icon: Icon(Icons.sort),
                     onPressed: () {
