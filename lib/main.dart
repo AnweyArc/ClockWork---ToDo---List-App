@@ -259,7 +259,6 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Description: ${todo.description}'),
                         Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
                         Text(
                           'Priority: ${_getPriorityText(todo.priority)}',

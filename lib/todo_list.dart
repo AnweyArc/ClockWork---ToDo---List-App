@@ -103,8 +103,25 @@ class TodoList with ChangeNotifier {
 
   void toggleTodoStatus(int index) {
     _todos[index].isDone = !_todos[index].isDone;
+    if (_todos[index].isDone) {
+      _todos[index].priority = TaskPriority.Finished; // Change priority to Finished if checklist is ticked
+    } else {
+      // Revert priority to previous state if checklist is unticked
+      // Example: Assuming priority was TaskPriority.Normal before marking as finished
+      _todos[index].priority = _getOriginalPriority(_todos[index]);
+    }
     _saveTodos();
     notifyListeners();
+  }
+
+  TaskPriority _getOriginalPriority(Todo todo) {
+    // Implement logic to determine the original priority before marking as finished
+    // For simplicity, assuming if it was finished, revert to Normal; otherwise, keep current priority
+    if (todo.priority == TaskPriority.Finished) {
+      return TaskPriority.Normal;
+    } else {
+      return todo.priority;
+    }
   }
 
   void removeTodo(int index) {
