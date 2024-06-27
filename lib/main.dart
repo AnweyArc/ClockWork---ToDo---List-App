@@ -198,52 +198,65 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
   }
 
   Widget _buildAllTasksView() {
-    return Column(
-      children: <Widget>[
-        Expanded(
-          child: Stack(
-            children: [
-              _backgroundImage != null
-                  ? Image.file(
-                      _backgroundImage!,
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                    )
-                  : Container(color: Colors.blueAccent),
-              Container(
-                width: double.infinity,
-                alignment: Alignment.center,
-                child: StreamBuilder<DateTime>(
-                  stream: _dateTimeStreamController.stream,
-                  builder: (context, snapshot) {
-                    final dateTime = snapshot.data ?? DateTime.now();
-                    final timeText = "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
-                    final dateText = "${dateTime.day.toString().padLeft(2, '0')} ${_monthName(dateTime.month)} ${dateTime.year}";
+  return Column(
+    children: <Widget>[
+      Expanded(
+        child: Stack(
+          children: [
+            _backgroundImage != null
+                ? Image.file(
+                    _backgroundImage!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.cover,
+                  )
+                : Container(color: Colors.blueAccent),
+            Container(
+              width: double.infinity,
+              alignment: Alignment.center,
+              child: StreamBuilder<DateTime>(
+                stream: _dateTimeStreamController.stream,
+                builder: (context, snapshot) {
+                  final dateTime = snapshot.data ?? DateTime.now();
+                  final timeText =
+                      "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}:${dateTime.second.toString().padLeft(2, '0')}";
+                  final dateText =
+                      "${dateTime.day.toString().padLeft(2, '0')} ${_monthName(dateTime.month)} ${dateTime.year}";
 
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          timeText,
-                          style: TextStyle(fontSize: 48, color: _timeTextColor),
-                        ),
-                        Text(
-                          dateText,
-                          style: TextStyle(fontSize: 24, color: _timeTextColor),
-                        ),
-                      ],
-                    );
-                  },
-                ),
+                  return Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        timeText,
+                        style: TextStyle(fontSize: 48, color: _timeTextColor),
+                      ),
+                      Text(
+                        dateText,
+                        style: TextStyle(fontSize: 24, color: _timeTextColor),
+                      ),
+                    ],
+                  );
+                },
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        Expanded(
-          child: Consumer<TodoList>(
-            builder: (context, todoList, child) {
-              return ListView.builder(
+      ),
+      Expanded(
+        child: Consumer<TodoList>(
+          builder: (context, todoList, child) {
+            return Scaffold(
+              appBar: AppBar(
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.sort),
+                    onPressed: () {
+                      Provider.of<TodoList>(context, listen: false).sortCycle();
+                    },
+                  ),
+                ],
+              ),
+              body: ListView.builder(
                 itemCount: todoList.todos.length,
                 itemBuilder: (context, index) {
                   final todo = todoList.todos[index];
@@ -309,13 +322,15 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                     ),
                   );
                 },
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
+
 
   void _showTaskDetailsDialog(BuildContext context, Todo todo, int index) {
     final TextEditingController _notesController = TextEditingController(text: todo.notes);
