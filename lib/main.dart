@@ -279,18 +279,23 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                     title: Text(
                       todo.title,
                       style: TextStyle(
-                        decoration: todo.isDone
-                            ? TextDecoration.lineThrough
-                            : TextDecoration.none,
+                        fontSize: 14,
+                        decoration: todo.isDone ? TextDecoration.lineThrough : TextDecoration.none,
                       ),
                     ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Due Time: ${_formatDateTime(todo.dueTime)}'),
+                        Text(
+                          'Due Time: ${_formatDateTime(todo.dueTime)}',
+                          style: TextStyle(
+                            fontSize: 12, // Adjusted font size for due time
+                          ),
+                        ),
                         Text(
                           'Priority: ${_getPriorityText(todo.priority)}',
                           style: TextStyle(
+                            fontSize: 12, // Adjusted font size for priority
                             fontWeight: FontWeight.bold,
                             color: _getPriorityColor(todo.priority),
                           ),
@@ -309,32 +314,41 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
                       },
                     ),
                     trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(todo.isLocked ? Icons.lock : Icons.lock_open),
-                          onPressed: () {
-                            todoList.lockTodoStatus(index);
-                          },
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                todo.isLocked ? Icons.lock : Icons.lock_open,
+                                size: 18, // Adjusted icon size to 20
+                              ),
+                              onPressed: () {
+                                todoList.lockTodoStatus(index);
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.edit,
+                                size: 18, // Adjusted icon size to 20
+                              ),
+                              onPressed: () {
+                                if (!todo.isLocked) {
+                                  _showEditDialog(context, todoList, index, todo);
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete,
+                                size: 18, // Adjusted icon size to 20
+                              ),
+                              onPressed: () {
+                                if (!todo.isLocked) {
+                                  _showDeleteConfirmationDialog(context, todoList, index);
+                                }
+                              },
+                            ),
+                          ],
                         ),
-                        IconButton(
-                          icon: Icon(Icons.edit),
-                          onPressed: () {
-                            if (!todo.isLocked) {
-                              _showEditDialog(context, todoList, index, todo);
-                            }
-                          },
-                        ),
-                        IconButton(
-                          icon: Icon(Icons.delete),
-                          onPressed: () {
-                            if (!todo.isLocked) {
-                              _showDeleteConfirmationDialog(context, todoList, index);
-                            }
-                          },
-                        ),
-                      ],
-                    ),
                   );
                 },
               ),
