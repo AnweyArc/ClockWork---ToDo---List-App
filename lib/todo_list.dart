@@ -236,7 +236,9 @@ class TodoList with ChangeNotifier {
     if (query.isEmpty) {
       _filteredTodos = [];
     } else {
-      _filteredTodos = _todos.where((todo) => todo.title.contains(query)).toList();
+      _filteredTodos = _todos.where((todo) => 
+        todo.title.contains(query) || todo.group.contains(query)
+      ).toList();
     }
     notifyListeners();
   }
