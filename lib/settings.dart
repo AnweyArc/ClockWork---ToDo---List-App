@@ -49,7 +49,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             (value) {
               setState(() {
                 _isNightMode = value;
-                Provider.of<ThemeProvider>(context, listen: false).toggleTheme(); // Ensure toggleTheme is accessible
+                Provider.of<ThemeProvider>(context, listen: false).toggleTheme();
                 _saveSettings();
               });
             },
@@ -58,7 +58,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: Text('Time Text Color'),
             trailing: GestureDetector(
               onTap: () {
-                _showColorPickerDialog(context);
+                _showColorPickerDialog(context, 'time');
               },
               child: Container(
                 width: 24,
@@ -72,21 +72,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showColorPickerDialog(BuildContext context) {
+  void _showColorPickerDialog(BuildContext context, String type) {
+    final TextEditingController _manualColorController = TextEditingController();
+    _manualColorController.text = _timeTextColor.value.toRadixString(16).padLeft(8, '0').substring(2);
+    
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Pick Time Text Color'),
+          title: Text('Pick $type Text Color'),
           content: SingleChildScrollView(
-            child: ColorPicker(
-              pickerColor: _timeTextColor,
-              onColorChanged: (color) {
-                setState(() {
-                  _timeTextColor = color;
-                  _saveSettings();
-                });
-              },
+            child: Column(
+              children: [
+                ColorPicker(
+                  pickerColor: _timeTextColor,
+                  onColorChanged: (color) {
+                    setState(() {
+                      _timeTextColor = color;
+                      _manualColorController.text = color.value.toRadixString(16).padLeft(8, '0').substring(2);
+                    });
+                  },
+                ),
+                TextField(
+                  controller: _manualColorController,
+                  decoration: InputDecoration(
+                    labelText: 'Enter Hex Code',
+                  ),
+                  onSubmitted: (value) {
+                    final color = Color(int.parse('ff' + value, radix: 16));
+                    setState(() {
+                      _timeTextColor = color;
+                      _saveSettings();
+                    });
+                  },
+                ),
+              ],
             ),
           ),
           actions: [

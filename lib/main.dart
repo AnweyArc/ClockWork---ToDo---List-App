@@ -69,7 +69,7 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
   Future<void> _loadTimeTextColor() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _timeTextColor = Color(prefs.getInt('time_text_color') ?? Colors.white.value);
+      _timeTextColor = Color(prefs.getInt('time_text_color') ?? Colors.black.value);
     });
   }
 
@@ -158,12 +158,6 @@ class _TodoListScreenState extends State<TodoListScreen> with SingleTickerProvid
           IconButton(
             icon: Icon(Icons.image),
             onPressed: _pickBackgroundImage,
-          ),
-            IconButton(
-            icon: Icon(Icons.sort),
-            onPressed: () {
-              Provider.of<TodoList>(context, listen: false).sortCycle();
-            },
           ),
           SizedBox(width: 16),
           IconButton(
